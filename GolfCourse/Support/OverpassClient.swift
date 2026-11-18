@@ -9,76 +9,6 @@ import CoreLocation
 import SwiftData
 
 
-struct Osm3S: Codable {
-    let timestampOsmBase: Date
-    let timestampAreasBase: Date
-    let copyright: String
-
-    enum CodingKeys: String, CodingKey {
-        case timestampOsmBase = "timestamp_osm_base"
-        case timestampAreasBase = "timestamp_areas_base"
-        case copyright = "copyright"
-    }
-}
-
-struct OverpassResponse: Codable {
-    let version: Double
-    let generator: String
-    let osm3S: Osm3S
-    let elements: [OSMElement]
-
-    enum CodingKeys: String, CodingKey {
-        case version = "version"
-        case generator = "generator"
-        case osm3S = "osm3s"
-        case elements = "elements"
-    }
-}
-
-struct OSMCoordinate: Codable, Identifiable {
-    var id: String { "\(lat)/\(lon)" }
-    
-    let lat: Double
-    let lon: Double
-
-    var mapCoordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
-}
-
-struct OSMElement: Codable, Identifiable {
-    let type: String
-    let osmID: Int64
-    let tags: [String: String]?
-    let lat: Double?
-    let lon: Double?
-    let center: OSMCoordinate?
-    let geometry: [OSMCoordinate]?
-    let members: [OSMMember]?
-
-    var id: String { "\(type)/\(osmID)" }
-
-    var coordinate: CLLocationCoordinate2D? {
-        if let lat, let lon {
-            return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        }
-        return center?.mapCoordinate
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case type, tags, lat, lon, center, geometry, members
-        case osmID = "id"
-    }
-}
-
-struct OSMMember: Identifiable, Codable {
-    var id: Int64 { ref }
-    let type: String
-    let ref: Int64
-    let role: String?
-    let geometry: [OSMCoordinate]?
-}
-
 struct OverpassClient {
 
     private let endpoint = URL(string: "https://overpass-api.de/api/interpreter")!
@@ -270,10 +200,6 @@ struct OverpassClient {
             print("Golf course details import error: \(error)")
         }
     }
-
-}
-
-extension OverpassClient {
     
     func getGolfCourses() async throws -> OverpassResponse {
         try await fetch(golfCoursesQuery())
@@ -282,5 +208,5 @@ extension OverpassClient {
     func getGolfCourse(osmID: Int64, type: String = "way") async throws -> OverpassResponse {
         try await fetch(golfCourseDetailsQuery(osmID: osmID, type: type))
     }
-    
+
 }

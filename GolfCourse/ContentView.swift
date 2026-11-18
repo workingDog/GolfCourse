@@ -51,13 +51,11 @@ struct ContentView: View {
                     let name = element.tags?["name"] ?? ""
                     
                     // MARK: - Geometry
-                    
                     if let geometry = element.geometry, !geometry.isEmpty {
                         CourseFeaturesView(geometry: geometry, element: element)
                     }
                     
                     // MARK: - Point elements
-                    
                     else if let coordinate = element.coordinate {
                         Annotation(name.isEmpty ? golfType : name, coordinate: coordinate) {
                             if golfType == "clubhouse" {
@@ -73,30 +71,34 @@ struct ContentView: View {
                     }
                     
                     // MARK: - Relation members
-                    
                     if let members = element.members {
-                        ForEach(members) { member in
-                            if let geometry = member.geometry, !geometry.isEmpty {
-                                let coordinates = geometry.map(\.mapCoordinate)
-                                if coordinates.count >= 3 {
-                                    MapPolygon(coordinates: coordinates)
-                                        .foregroundStyle(
-                                            member.role == "inner"
-                                            ? .white.opacity(0.5)
-                                            : .orange.opacity(0.2)
-                                        )
-                                } else if coordinates.count >= 2 {
-                                    MapPolyline(coordinates: coordinates)
-                                        .stroke(.orange, lineWidth: 2)
-                                }
-                            }
-                        }
+                        MembersView(members: members)
                     }
                     
                 }
             }
         }
         
+    }
+    
+    @MapContentBuilder
+    func MembersView(members: [OSMMember]) -> some MapContent {
+        ForEach(members) { member in
+            if let geometry = member.geometry, !geometry.isEmpty {
+                let coordinates = geometry.map(\.mapCoordinate)
+                if coordinates.count >= 3 {
+                    MapPolygon(coordinates: coordinates)
+                        .foregroundStyle(
+                            member.role == "inner"
+                            ? .white.opacity(0.5)
+                            : .orange.opacity(0.2)
+                        )
+                } else if coordinates.count >= 2 {
+                    MapPolyline(coordinates: coordinates)
+                        .stroke(.orange, lineWidth: 2)
+                }
+            }
+        }
     }
     
     @MapContentBuilder
@@ -112,14 +114,14 @@ struct ContentView: View {
         case "course":
             if coordinates.count >= 3 {
                 MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.blue.opacity(0.15))
+                    .foregroundStyle(.blue.opacity(0.2))
                     .stroke(.blue, lineWidth: 2)
             }
             
         case "fairway":
             if coordinates.count >= 3 {
                 MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.green.opacity(0.35))
+                    .foregroundStyle(.green.opacity(0.4))
             }
             
         case "green":
@@ -137,7 +139,7 @@ struct ContentView: View {
         case "bunker":
             if coordinates.count >= 3 {
                 MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.yellow.opacity(0.7))
+                    .foregroundStyle(.yellow.opacity(0.8))
             }
             
         case "water_hazard":
@@ -149,7 +151,7 @@ struct ContentView: View {
         case "rough":
             if coordinates.count >= 3 {
                 MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.green.opacity(0.15))
+                    .foregroundStyle(.green.opacity(0.3))
             }
             
         case "cartpath":

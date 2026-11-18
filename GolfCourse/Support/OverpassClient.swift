@@ -21,8 +21,8 @@ struct OverpassClient {
         
         self.sessionManager = {
             let configuration = URLSessionConfiguration.default
-            configuration.timeoutIntervalForRequest = 60  // seconds
-            configuration.timeoutIntervalForResource = 600 // seconds
+            configuration.timeoutIntervalForRequest = 30  // seconds
+            configuration.timeoutIntervalForResource = 300 // seconds
             return URLSession(configuration: configuration)
         }()
     }
@@ -30,7 +30,7 @@ struct OverpassClient {
     func fetch(_ query: String) async throws -> OverpassResponse {
         var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 600
+        request.timeoutInterval = 300
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("JapanGolfMap/1.0 (contact: warton@gmail.com)", forHTTPHeaderField: "User-Agent")
@@ -75,30 +75,6 @@ struct OverpassClient {
         """
     }
     
-    func golfCourseDetailsQuery2(osmID: Int64, type: String = "way") -> String {
-        """
-        [out:json][timeout:180];
-
-        \(type)(\(osmID))->.boundary;
-        .boundary map_to_area->.course;
-
-        (
-            .boundary;
-            nwr["golf"](area.course);
-            relation["type"="sport"]["golf"="course"](area.course);
-        )->.features;
-
-        (
-            .features;
-            rel(bw.features);
-        )->.related;
-
-        .related out body geom;
-        .related >>;
-        out body geom;
-        """
-    }
-    
     func golfCourseDetailsQuery(osmID: Int64, type: String = "way") -> String {
         """
         [out:json][timeout:180];
@@ -132,8 +108,8 @@ struct OverpassClient {
     
     func importGolfCourses(_ modelContext: ModelContext) async throws {
         do {
-            let resp1 = try await getGolfCourses()
-            for boundary in resp1.elements {
+            let response = try await getGolfCourses()
+            for boundary in response.elements {
                 let course = GolfCourse(
                     osmID: boundary.osmID,
                     name: boundary.tags?["name"],
@@ -142,7 +118,7 @@ struct OverpassClient {
                 modelContext.insert(course)
             }
             try modelContext.save()
-            print("Golf courses imported: \(resp1.elements.count)")
+            print("Golf courses imported: \(response.elements.count)")
         } catch {
             print("Golf course import error: \(error)")
         }
@@ -168,12 +144,11 @@ struct OverpassClient {
                     }
                     if !gc.elements.contains(where: { $0.osmID == element.osmID }) {
                         gc.elements.append(osmElement)
-    //                    print("---> gc adding: \(gc.osmID)")
                     }
                 }
                 
                 try modelContext.save()
-                print("Golf courses elements imported: \(response.elements.count)")
+                print("Golf course elements imported: \(response.elements.count)")
             }
             
         } catch {
@@ -181,11 +156,11 @@ struct OverpassClient {
         }
     }
     
-    func getGolfCourses() async throws -> OverpassResponse {
+    private func getGolfCourses() async throws -> OverpassResponse {
         try await fetch(golfCoursesQuery())
     }
 
-    func getGolfCourse(osmID: Int64, type: String = "way") async throws -> OverpassResponse {
+    private func getGolfCourse(osmID: Int64, type: String = "way") async throws -> OverpassResponse {
         try await fetch(golfCourseDetailsQuery(osmID: osmID, type: type))
     }
 
@@ -195,7 +170,7 @@ struct OverpassClient {
 
 /*
  
- try in https://overpass-turbo.eu/
+ try in the browser:  https://overpass-turbo.eu/
  
  [out:csv(::type,::id,name,::count;true)][timeout:180];
  area["ISO3166-1"="JP"][admin_level=2]->.japan;

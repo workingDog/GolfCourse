@@ -57,6 +57,10 @@ final class OSMElementModel {
         geometry = element.geometry
         members = element.members
     }
+
+    var golfType: String { tags?["golf"] ?? "" }
+    var name: String { tags?["name"] ?? "" }
+    var ref: String { tags?["ref"] ?? "" }
 }
 
 struct Osm3S: Codable {

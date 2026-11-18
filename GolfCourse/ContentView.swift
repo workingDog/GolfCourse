@@ -20,7 +20,7 @@ import MapKit
  708715709
  138736091
  138736088
- 138736091 <---
+ 138736091
  
  */
 
@@ -39,10 +39,10 @@ struct ContentView: View {
         guard let course = selectedCourse else { return [] }
         var seenHoleRefs = Set<String>()
         return course.elements.filter { element in
-            guard element.tags?["golf"] == "hole", let ref = element.tags?["ref"] else {
+            guard element.golfType == "hole", !element.ref.isEmpty else {
                 return true
             }
-            return seenHoleRefs.insert(ref).inserted
+            return seenHoleRefs.insert(element.ref).inserted
         }
     }
     
@@ -51,28 +51,15 @@ struct ContentView: View {
             if selectedCourse != nil {
                 
                 ForEach(displayedElements) { element in
-                    
-                    let golfType = element.tags?["golf"] ?? ""
-                    let name = element.tags?["name"] ?? ""
-                    
+ 
                     // MARK: - Geometry
                     if let geometry = element.geometry, !geometry.isEmpty {
                         CourseFeaturesView(geometry: geometry, element: element)
                     }
                     
                     // MARK: - Point elements
-                    else if let coordinate = element.coordinate {
-                        Annotation(name.isEmpty ? golfType : name, coordinate: coordinate) {
-                            if golfType == "clubhouse" {
-                                Image(systemName: "building.2")
-                                    .foregroundStyle(.red)
-                                    .font(.title3)
-                            } else if golfType == "pin" {
-                                Image(systemName: "flag.fill")
-                                    .foregroundStyle(.red)
-                                    .font(.title3)
-                            }
-                        }
+                    else  {
+                        PointView(element: element)
                     }
                     
                     // MARK: - Relation members
@@ -99,14 +86,30 @@ struct ContentView: View {
     }
     
     @MapContentBuilder
+    func PointView(element: OSMElementModel) -> some MapContent {
+        if let coordinate = element.coordinate {
+            Annotation(element.name.isEmpty ? element.golfType : element.name, coordinate: coordinate) {
+                if element.golfType == "clubhouse" {
+                    Image(systemName: "building.2")
+                        .foregroundStyle(.red)
+                        .font(.title3)
+                } else if element.golfType == "pin" {
+                    Image(systemName: "flag.fill")
+                        .foregroundStyle(.red)
+                        .font(.title3)
+                }
+            }
+        }
+    }
+    
+    @MapContentBuilder
     func MembersView(members: [OSMMember]) -> some MapContent {
         ForEach(members) { member in
             if let geometry = member.geometry, !geometry.isEmpty {
                 let coordinates = geometry.map(\.mapCoordinate)
                 if coordinates.count >= 3 {
                     MapPolygon(coordinates: coordinates)
-                        .foregroundStyle(
-                            member.role == "inner"
+                        .foregroundStyle(member.role == "inner"
                             ? .white.opacity(0.5)
                             : .orange.opacity(0.2)
                         )
@@ -120,13 +123,9 @@ struct ContentView: View {
     
     @MapContentBuilder
     func CourseFeaturesView(geometry: [OSMCoordinate], element: OSMElementModel) -> some MapContent {
-        
-        let golfType = element.tags?["golf"] ?? ""
-        let ref = element.tags?["ref"] ?? ""
-        
         let coordinates = geometry.map(\.mapCoordinate)
         
-        switch golfType {
+        switch element.golfType {
             
         case "course":
             if coordinates.count >= 3 {
@@ -180,8 +179,8 @@ struct ContentView: View {
         case "hole":
             if let coordinate = element.center?.mapCoordinate
                 ?? element.geometry?.first?.mapCoordinate {
-                Annotation("Hole \(ref)", coordinate: coordinate) {
-                    Text(ref.isEmpty ? "?" : ref)
+                Annotation("Hole \(element.ref)", coordinate: coordinate) {
+                    Text(element.ref.isEmpty ? "?" : element.ref)
                         .font(.caption.bold())
                         .foregroundStyle(.black)
                         .padding(7)

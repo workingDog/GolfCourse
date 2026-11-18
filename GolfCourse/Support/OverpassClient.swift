@@ -11,13 +11,26 @@ import SwiftData
 
 struct OverpassClient {
 
-    private let endpoint = URL(string: "https://overpass-api.de/api/interpreter")!
+    let sessionManager: URLSession
+    
+    private let baseURL: URL
     private let decoder = JSONDecoder()
     
+    init(baseURL: URL = URL(string: "https://overpass-api.de/api/interpreter")!) {
+        self.baseURL = baseURL
+        
+        self.sessionManager = {
+            let configuration = URLSessionConfiguration.default
+            configuration.timeoutIntervalForRequest = 60  // seconds
+            configuration.timeoutIntervalForResource = 600 // seconds
+            return URLSession(configuration: configuration)
+        }()
+    }
+    
     func fetch(_ query: String) async throws -> OverpassResponse {
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 150
+        request.timeoutInterval = 600
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("JapanGolfMap/1.0 (contact: warton@gmail.com)", forHTTPHeaderField: "User-Agent")
@@ -32,8 +45,8 @@ struct OverpassClient {
         request.httpBody = body
 
         print("\n---> fetching")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        print("---> done \n")
+        let (data, response) = try await sessionManager.data(for: request)
+        print("---> done fetching \n")
         
   //      print("---> data: \n\(String(data: data, encoding: .utf8) as AnyObject)\n")
         
@@ -91,7 +104,7 @@ struct OverpassClient {
         [out:json][timeout:180];
 
         // 1. Retrieve the golf course boundary
-        way(544123041)->.course;
+        way(\(osmID))->.course;
 
         // 2. Convert the boundary into an area
         .course map_to_area -> .courseArea;
@@ -135,16 +148,16 @@ struct OverpassClient {
         }
     }
     
-    func importGolfCoursesDetails(_ modelContext: ModelContext, golfCourses: [GolfCourse]) async throws {
+    func importOneGolfCourse(_ modelContext: ModelContext, golfCourses: [GolfCourse], osmID: Int64) async throws {
         do {
-            for gc in golfCourses.prefix(3) {
+            if let gc = golfCourses.first(where: {$0.osmID == osmID}) {
+                
                 let response = try await getGolfCourse(osmID: gc.osmID)
-                print("---> gc.osmID: \(gc.osmID)")
+                print("---> gc.osmID: \(gc.osmID) elements: \(response.elements.count)")
                 
                 for element in response.elements {
-                    let key = element.id
                     let descriptor = FetchDescriptor<OSMElementModel>(
-                        predicate: #Predicate { $0.osmKey == key }
+                        predicate: #Predicate { $0.osmID == element.osmID }
                     )
                     let osmElement: OSMElementModel
                     if let existing = try modelContext.fetch(descriptor).first {
@@ -153,42 +166,9 @@ struct OverpassClient {
                         osmElement = OSMElementModel(element: element)
                         modelContext.insert(osmElement)
                     }
-                    if !gc.elements.contains(where: { $0.osmKey == key }) {
+                    if !gc.elements.contains(where: { $0.osmID == element.osmID }) {
                         gc.elements.append(osmElement)
-                        print("---> gc adding: \(gc.osmID)")
-                    }
-                }
-                
-                try modelContext.save()
-                print("Golf courses elements imported: \(response.elements.count)")
-            }
-        } catch {
-            print("Golf course details import error: \(error)")
-        }
-    }
-    
-    func importOneGolfCourse(_ modelContext: ModelContext, golfCourses: [GolfCourse], wayid: Int64) async throws {
-        do {
-            if let gc = golfCourses.first(where: {$0.osmID == wayid}) {
-                
-                let response = try await getGolfCourse(osmID: gc.osmID)
-                print("---> gc.osmID: \(gc.osmID)")
-                
-                for element in response.elements {
-                    let key = element.id
-                    let descriptor = FetchDescriptor<OSMElementModel>(
-                        predicate: #Predicate { $0.osmKey == key }
-                    )
-                    let osmElement: OSMElementModel
-                    if let existing = try modelContext.fetch(descriptor).first {
-                        osmElement = existing
-                    } else {
-                        osmElement = OSMElementModel(element: element)
-                        modelContext.insert(osmElement)
-                    }
-                    if !gc.elements.contains(where: { $0.osmKey == key }) {
-                        gc.elements.append(osmElement)
-                        print("---> gc adding: \(gc.osmID)")
+    //                    print("---> gc adding: \(gc.osmID)")
                     }
                 }
                 
@@ -210,3 +190,57 @@ struct OverpassClient {
     }
 
 }
+
+
+
+/*
+ 
+ try in https://overpass-turbo.eu/
+ 
+ [out:csv(::type,::id,name,::count;true)][timeout:180];
+ area["ISO3166-1"="JP"][admin_level=2]->.japan;
+ (
+     way["leisure"="golf_course"](area.japan);
+     relation["leisure"="golf_course"](area.japan);
+ )->.courses;
+ foreach.courses->.course(
+     .course out tags;
+     .course map_to_area->.courseArea;
+     nwr["golf"](area.courseArea);
+     out count;
+ );
+ 
+ */
+
+
+
+/*
+ 
+ [out:json][timeout:180];
+
+ // 1. Retrieve the golf course boundary
+ way(544123041)->.course;
+
+ // 2. Convert the boundary into an area
+ .course map_to_area -> .courseArea;
+
+ // 3. Retrieve all golf-related features inside the course
+ (
+     .course;
+     nwr(area.courseArea)["golf"];
+     nwr(area.courseArea)["sport"="golf"];
+ )->.courseElements;
+
+ // 4. Retrieve the underlying elements of relations
+ .courseElements >> -> .courseMembers;
+
+ // 5. Combine everything
+ (
+     .courseElements;
+     .courseMembers;
+ );
+
+ // 6. Return complete geometry
+ out geom;
+ 
+ */

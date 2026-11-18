@@ -11,8 +11,8 @@ import CoreLocation
 
 @Model
 final class GolfCourse {
-    @Attribute(.unique) var osmKey: String
-    var osmID: Int64
+    @Attribute(.unique) var osmID: Int64
+    
     var name: String?
     var tags: [String: String]?
     
@@ -21,7 +21,6 @@ final class GolfCourse {
 
     init(osmID: Int64, name: String?, tags: [String: String]?) {
         self.osmID = osmID
-        osmKey = "way/\(osmID)"
         self.name = name
         self.tags = tags
     }
@@ -29,9 +28,9 @@ final class GolfCourse {
 
 @Model
 final class OSMElementModel {
-    @Attribute(.unique) var osmKey: String
+    @Attribute(.unique) var osmID: Int64
+    
     var type: String
-    var osmID: Int64 // <--- here 
     var tags: [String: String]?
     var lat: Double?
     var lon: Double?
@@ -49,7 +48,6 @@ final class OSMElementModel {
     }
 
     init(element: OSMElement) {
-        osmKey = element.id
         type = element.type
         osmID = element.osmID
         tags = element.tags
@@ -99,6 +97,8 @@ struct OSMCoordinate: Codable, Identifiable {
 }
 
 struct OSMElement: Codable, Identifiable {
+    var id: String { "\(type)/\(osmID)" }
+    
     let type: String
     let osmID: Int64
     let tags: [String: String]?
@@ -107,8 +107,6 @@ struct OSMElement: Codable, Identifiable {
     let center: OSMCoordinate?
     let geometry: [OSMCoordinate]?
     let members: [OSMMember]?
-
-    var id: String { "\(type)/\(osmID)" }
 
     var coordinate: CLLocationCoordinate2D? {
         if let lat, let lon {
@@ -125,6 +123,7 @@ struct OSMElement: Codable, Identifiable {
 
 struct OSMMember: Identifiable, Codable {
     var id: Int64 { ref }
+    
     let type: String
     let ref: Int64
     let role: String?

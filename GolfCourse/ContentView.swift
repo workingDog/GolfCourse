@@ -13,10 +13,15 @@ import MapKit
 /*
  golfCourses
  544123041
+ 500668040  
  
- 697251926
- 550991228
- 379137416
+ 706245604
+ 487691175
+ 708715709
+ 138736091
+ 138736088
+ 138736091 <---
+ 
  */
 
 struct ContentView: View {
@@ -24,7 +29,7 @@ struct ContentView: View {
     @Query private var golfCourses: [GolfCourse]
     @State private var cameraPosition: MapCameraPosition = .automatic
     
-    let courseid: Int64 = 544123041
+    let courseid: Int64 = 487691175 //138736088 // 544123041  // 706245604  // 138736091  // 544123041
     
     private var selectedCourse: GolfCourse? {
         golfCourses.first { $0.osmID == courseid }
@@ -78,6 +83,18 @@ struct ContentView: View {
                 }
             }
         }
+
+//        .task {
+//            do {
+//                print("---> start import \(courseid)")
+//                try await OverpassClient().importOneGolfCourse(
+//                    modelContext, golfCourses: golfCourses, osmID: courseid
+//                )
+//                print("---> done import \(courseid)")
+//            } catch {
+//                print(error)
+//            }
+//        }
         
     }
     
@@ -188,15 +205,18 @@ struct ContentView: View {
 
 
 /*
-
-//        .onAppear {
-//            if let course = golfCourses.first(where: { $0.osmID == courseid }) {
-//                for element in course.elements where element.tags?["golf"] == "hole" {
-//                    print(element.osmID, element.tags ?? [:], element.type)
-//                }
+ 
+ 
+//        .task {
+//            do {
+//                print("---> start import all courses")
+//                try await OverpassClient().importGolfCourses(modelContext)
+//                print("---> finished import all courses")
+//            } catch {
+//                print(error)
 //            }
 //        }
- 
+
 //        .task {
 //            do {
 //                try await OverpassClient().importOneGolfCourse(
@@ -209,23 +229,6 @@ struct ContentView: View {
 //        }
 
  
- .onAppear {
-     if let resutls = golfCourses.first(where: {$0.osmID == courseid}) {
-         print("---> resutls: \(resutls.elements.count)")
-         for el in resutls.elements {
-            // print("---> el.members: \(el.members?.count)")
-             if let members = el.members {
-                 for member in members {
-                     if member.geometry != nil {
-                         print("---> geom: \(member.geometry?.count)")
-                     }
-                 }
-             }
-         }
-     }
- }
- 
- 
  //        .onAppear {
  //            if let resutls = golfCourses.first(where: {$0.osmID == 697251926}) {
  //                print("---> resutls: \(resutls.elements.count)")
@@ -234,15 +237,6 @@ struct ContentView: View {
  //                        print("---> type: \(el.type) members: \(el.members?.count)  geom: \(el.geometry?.count)")
  //                    }
  //                }
- //            }
- //        }
- 
- //        .task {
- //            do {
- //                let resutls = try await OverpassClient().getGolfCourse(osmID: 697251926)
- //                print("---> resutls: \(resutls.elements.count)")
- //            } catch {
- //                print(error)
  //            }
  //        }
  

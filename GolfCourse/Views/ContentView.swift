@@ -16,13 +16,26 @@ struct ContentView: View {
     @Query private var golfCourses: [GolfCourse]
     
     @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var showCourse = true
     
-    let courseid: Int64 = 487691175
+    @AppStorage("storedMapStyle") private var mapType = 0
+    
+    var mapStyle: MapStyle {
+        switch(mapType) {
+            case 0: .standard()
+            case 1: .hybrid()
+            case 2: .imagery(elevation: .realistic)
+            default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
+        }
+    }
+    
+    let courseid: Int64 = 544123041  // 487691175
     
     private var selectedCourse: GolfCourse? {
         golfCourses.first { $0.osmID == courseid }
     }
     
+    // removes duplicate ref elements (the hole number)
     private var displayedElements: [OSMElementModel] {
         guard let course = selectedCourse else { return [] }
         var seenHoleRefs = Set<String>()
@@ -35,30 +48,44 @@ struct ContentView: View {
     }
     
     var body: some View {
-        Map(position: $cameraPosition) {
-            if selectedCourse != nil {
-                
-                ForEach(displayedElements) { element in
- 
-                    // MARK: - Geometry
-                    if let geometry = element.geometry, !geometry.isEmpty {
-                        CourseFeaturesView(geometry: geometry, element: element)
+        NavigationStack {
+            Map(position: $cameraPosition) {
+                if selectedCourse != nil && showCourse {
+                    ForEach(displayedElements) { element in
+                        if let geometry = element.geometry, !geometry.isEmpty {
+                            CourseFeaturesView(geometry: geometry, element: element)
+                        }
+                        else  {
+                            PointView(element: element)
+                        }
+                        if let members = element.members {
+                            MembersView(members: members)
+                        }
                     }
-                    
-                    // MARK: - Point elements
-                    else  {
-                        PointView(element: element)
+                }
+            }
+            .mapStyle(mapStyle)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("", selection: $mapType) {
+                        Text("Standard").tag(0)
+                        Text("Hybrid").tag(1)
+                        Text("Satellite").tag(2)
                     }
-                    
-                    // MARK: - Relation members
-                    if let members = element.members {
-                        MembersView(members: members)
+                    .pickerStyle(.segmented)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCourse.toggle()
+                    } label: {
+                        Image(systemName: "figure.golf")
+                            .font(.title)
+                            .foregroundStyle(Color.primary)
                     }
-                    
                 }
             }
         }
-        
+
         // testing
         .onAppear {
             print("\n---> stored golf courses with details in SwiftData")
@@ -164,7 +191,7 @@ struct ContentView: View {
         case "bunker":
             if coordinates.count >= 3 {
                 MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.yellow.opacity(0.8))
+                    .foregroundStyle(.yellow)
             }
             
         case "water_hazard":
@@ -182,7 +209,7 @@ struct ContentView: View {
         case "cartpath":
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
-                    .stroke(.gray, lineWidth: 2)
+                    .stroke(.gray, lineWidth: 4)
             }
             
         case "hole":
@@ -202,9 +229,13 @@ struct ContentView: View {
             
         default:
             if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates).foregroundStyle(.purple.opacity(0.2))
+                MapPolygon(coordinates: coordinates)
+                    .foregroundStyle(.clear)
+                    .stroke(.green, lineWidth: 2)
             } else if coordinates.count >= 2 {
-                MapPolyline(coordinates: coordinates).stroke(.purple, lineWidth: 2)
+                MapPolyline(coordinates: coordinates)
+                    .foregroundStyle(.purple.opacity(0.2))
+                    .stroke(.purple, lineWidth: 2)
             }
         }
     }

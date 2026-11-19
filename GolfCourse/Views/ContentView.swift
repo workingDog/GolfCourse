@@ -17,6 +17,8 @@ struct ContentView: View {
     
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var showCourse = true
+    @State private var courses: [Int64] = [544123041, 487691175, 706245604, 138736088]
+    @State private var courseid: Int64 = 544123041
     
     @AppStorage("storedMapStyle") private var mapType = 0
     
@@ -28,9 +30,7 @@ struct ContentView: View {
             default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
-    
-    let courseid: Int64 = 544123041  // 487691175
-    
+
     private var selectedCourse: GolfCourse? {
         golfCourses.first { $0.osmID == courseid }
     }
@@ -82,6 +82,16 @@ struct ContentView: View {
                             .font(.title)
                             .foregroundStyle(Color.primary)
                     }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Picker(selection: $courseid) {
+                        ForEach(courses, id: \.self) { course in
+                            Text("\(course)").tag(course)
+                        }
+                    } label: {
+                        Image(systemName: "filemenu.and.pointer.arrow").font(.title)
+                    }
+                    .pickerStyle(.menu)
                 }
             }
         }

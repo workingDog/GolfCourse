@@ -10,26 +10,14 @@ import SwiftData
 import MapKit
 
 
-/*
- golfCourses
- 544123041
- 500668040  
- 
- 706245604
- 487691175
- 708715709
- 138736091
- 138736088
- 138736091
- 
- */
-
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    
     @Query private var golfCourses: [GolfCourse]
+    
     @State private var cameraPosition: MapCameraPosition = .automatic
     
-    let courseid: Int64 = 487691175 //138736088 // 544123041  // 706245604  // 138736091  // 544123041
+    let courseid: Int64 = 487691175
     
     private var selectedCourse: GolfCourse? {
         golfCourses.first { $0.osmID == courseid }
@@ -70,18 +58,39 @@ struct ContentView: View {
                 }
             }
         }
+        
+        // testing
+        .onAppear {
+            print("\n---> stored golf courses with details in SwiftData")
+            for gc in golfCourses {
+                if gc.elements.count > 2 {
+                    print("---> gc: \(gc.osmID)")
+                }
+            }
+            print()
+        }
 
 //        .task {
 //            do {
-//                print("---> start import \(courseid)")
+//                print("---> start import details of \(courseid)")
 //                try await OverpassClient().importOneGolfCourse(
 //                    modelContext, golfCourses: golfCourses, osmID: courseid
 //                )
-//                print("---> done import \(courseid)")
+//                print("---> done import details of \(courseid)")
 //            } catch {
 //                print(error)
 //            }
 //        }
+        
+        //        .task {
+        //            do {
+        //                print("---> start import all courses, but not their details")
+        //                try await OverpassClient().importGolfCourses(modelContext)
+        //                print("---> finished import all courses")
+        //            } catch {
+        //                print(error)
+        //            }
+        //        }
         
     }
     
@@ -201,6 +210,22 @@ struct ContentView: View {
     }
     
 }
+
+
+
+/*
+ golfCourses
+ 544123041
+ 500668040
+ 
+ 706245604
+ 487691175
+ 708715709
+ 138736091
+ 138736088
+ 138736091
+ 
+ */
 
 
 /*

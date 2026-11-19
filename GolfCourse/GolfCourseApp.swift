@@ -8,10 +8,10 @@
 import SwiftUI
 import SwiftData
 
+
 @main
 struct GolfCourseApp: App {
 
-    
     var sharedModelContainer: ModelContainer = {
         let appSupportDir = FileManager.default.urls(
             for: .applicationSupportDirectory,

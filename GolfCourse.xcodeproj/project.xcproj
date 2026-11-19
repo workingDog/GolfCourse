@@ -11,6 +11,7 @@
     ],
   },
   "files": [
+    { "path": "README.md", "target-membership": [ "GolfCourse/resources" ] },
     { "kind": "folder", "path": "GolfCourse", "target-membership": [ "GolfCourse" ] },
     {
       "kind": "group",

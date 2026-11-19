@@ -32,7 +32,7 @@ struct ContentView: View {
     }
 
     private var selectedCourse: GolfCourse? {
-        golfCourses.first { $0.osmID == courseid }
+        golfCourses.first(where: { $0.osmID == courseid })
     }
     
     // removes duplicate ref elements (the hole number)
@@ -79,19 +79,28 @@ struct ContentView: View {
                         showCourse.toggle()
                     } label: {
                         Image(systemName: "figure.golf")
-                            .font(.title)
                             .foregroundStyle(Color.primary)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Picker(selection: $courseid) {
+                    Menu {
                         ForEach(courses, id: \.self) { course in
-                            Text("\(course)").tag(course)
+                            Button {
+                                courseid = course
+                            } label: {
+                                HStack {
+                                    Text(courseName(of: course))
+                                        .foregroundStyle(courseid == course ? Color.green : Color.primary)
+                                    Spacer()
+                                    if courseid == course {
+                                        Image(systemName: courseid == course ? "checkmark" : "circle")
+                                    }
+                                }
+                            }
                         }
                     } label: {
-                        Image(systemName: "filemenu.and.pointer.arrow").font(.title)
+                        Image(systemName: "list.triangle")
                     }
-                    .pickerStyle(.menu)
                 }
             }
         }
@@ -101,34 +110,44 @@ struct ContentView: View {
             print("\n---> stored golf courses with details in SwiftData")
             for gc in golfCourses {
                 if gc.elements.count > 2 {
-                    print("---> gc: \(gc.osmID)")
+                    print("---> gc: \(gc.name)  gc: \(gc.osmID)")
                 }
             }
             print()
         }
 
 //        .task {
+//            for course in courses {
+//                do {
+//                    print("---> start import details of \(course)")
+//                    try await OverpassClient().importOneGolfCourse(
+//                        modelContext, golfCourses: golfCourses, osmID: course
+//                    )
+//                    print("---> done import details of \(course)\n")
+//                } catch {
+//                    print(error)
+//                }
+//            }
+//        }
+        
+//        .task {
 //            do {
-//                print("---> start import details of \(courseid)")
-//                try await OverpassClient().importOneGolfCourse(
-//                    modelContext, golfCourses: golfCourses, osmID: courseid
-//                )
-//                print("---> done import details of \(courseid)")
+//                print("---> start import all courses, but not their details")
+//                try await OverpassClient().importGolfCourses(modelContext)
+//                print("---> finished import all courses")
 //            } catch {
 //                print(error)
 //            }
 //        }
         
-        //        .task {
-        //            do {
-        //                print("---> start import all courses, but not their details")
-        //                try await OverpassClient().importGolfCourses(modelContext)
-        //                print("---> finished import all courses")
-        //            } catch {
-        //                print(error)
-        //            }
-        //        }
-        
+    }
+    
+    private func courseName(of osmid: Int64) -> String {
+        if let theCourse = golfCourses.first(where: { $0.osmID == osmid }),
+        let name = theCourse.name {
+            return name
+        }
+        return "no name"
     }
     
     @MapContentBuilder

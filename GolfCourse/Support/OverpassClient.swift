@@ -21,8 +21,8 @@ struct OverpassClient {
         
         self.sessionManager = {
             let configuration = URLSessionConfiguration.default
-            configuration.timeoutIntervalForRequest = 60  // seconds
-            configuration.timeoutIntervalForResource = 60 // seconds
+            configuration.timeoutIntervalForRequest = 600  // seconds
+            configuration.timeoutIntervalForResource = 600 // seconds
             return URLSession(configuration: configuration)
         }()
     }
@@ -30,7 +30,7 @@ struct OverpassClient {
     func fetch(_ query: String) async throws -> OverpassResponse {
         var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60
+        request.timeoutInterval = 600
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("JapanGolfMap/1.0 (contact: warton@gmail.com)", forHTTPHeaderField: "User-Agent")

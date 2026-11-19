@@ -46,6 +46,13 @@ final class OSMElementModel {
         }
         return center?.mapCoordinate
     }
+    
+    var centerLocation: CLLocation? {
+        if let lat, let lon {
+            return CLLocation(latitude: lat, longitude: lon)
+        }
+        return nil
+    }
 
     init(element: OSMElement) {
         type = element.type

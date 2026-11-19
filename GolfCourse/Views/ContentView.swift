@@ -20,6 +20,11 @@ struct ContentView: View {
     @State private var courses: [Int64] = [544123041, 487691175, 706245604, 138736088]
     @State private var courseid: Int64 = 544123041
     
+    @State private var pinTapped: Int64?
+    
+    @State private var showDistToPin = false
+    @State private var userLocation = CLLocation()  // for testing
+    
     @AppStorage("storedMapStyle") private var mapType = 0
     
     var mapStyle: MapStyle {
@@ -61,6 +66,9 @@ struct ContentView: View {
                         if let members = element.members {
                             MembersView(members: members)
                         }
+                        if showDistToPin {
+                            PathToPin(element: element)
+                        }
                     }
                 }
             }
@@ -79,6 +87,14 @@ struct ContentView: View {
                         showCourse.toggle()
                     } label: {
                         Image(systemName: "figure.golf")
+                            .foregroundStyle(Color.primary)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showDistToPin.toggle()
+                    } label: {
+                        Image(systemName: "mappin.and.ellipse")
                             .foregroundStyle(Color.primary)
                     }
                 }
@@ -102,6 +118,11 @@ struct ContentView: View {
                         Image(systemName: "list.triangle")
                     }
                 }
+            }
+        }
+        .task(id: selectedCourse) {
+            if let coords = selectedCourse?.elements.first?.coordinate {
+                userLocation = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
             }
         }
 
@@ -151,22 +172,42 @@ struct ContentView: View {
     }
     
     @MapContentBuilder
+    func PathToPin(element: OSMElementModel) -> some MapContent {
+        if element.osmID == pinTapped {
+            if let thePin = element.centerLocation {
+                let distance = userLocation.distance(from: thePin)
+                let _ = print("---> distance: \(distance)")
+                MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
+                .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [1, 10]))
+            }
+        }
+    }
+    
+    @MapContentBuilder
     func PointView(element: OSMElementModel) -> some MapContent {
         if let coordinate = element.coordinate {
-            Annotation(element.name.isEmpty ? element.golfType : element.name, coordinate: coordinate) {
+            Annotation(
+                element.name.isEmpty ? element.golfType : element.name,
+                coordinate: coordinate
+            ) {
                 if element.golfType == "clubhouse" {
                     Image(systemName: "building.2")
                         .foregroundStyle(.red)
                         .font(.title3)
                 } else if element.golfType == "pin" {
-                    Image(systemName: "flag.fill")
-                        .foregroundStyle(.red)
-                        .font(.title3)
+                    Button {
+                        pinTapped = element.osmID
+                    } label: {
+                        Image(systemName: "flag.fill")
+                            .foregroundStyle(.red)
+                            .font(.title3)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
     }
-    
+
     @MapContentBuilder
     func MembersView(members: [OSMMember]) -> some MapContent {
         ForEach(members) { member in

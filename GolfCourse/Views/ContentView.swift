@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var courseid: Int64 = 544123041
     
     @State private var pinTapped: Int64?
+    @State private var pinsLocations: [Int64 : CLLocation] = [:]
     @State private var userLocation = CLLocation()  // for testing
     
     @AppStorage("storedMapStyle") private var mapType = 0
@@ -33,7 +34,7 @@ struct ContentView: View {
             default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
-
+    
     private var selectedCourse: GolfCourse? {
         golfCourses.first(where: { $0.osmID == courseid })
     }
@@ -54,19 +55,9 @@ struct ContentView: View {
         NavigationStack {
             Map(position: $cameraPosition) {
                 if selectedCourse != nil && showCourse {
-                    ForEach(displayedElements) { element in
-                        if let geometry = element.geometry, !geometry.isEmpty {
-                            CourseFeaturesView(geometry: geometry, element: element)
-                        }
-                        else  {
-                            PointView(element: element)
-                        }
-                        if let members = element.members {
-                            MembersView(members: members)
-                        }
-                        if pinTapped != nil {
-                            PathToPin(element: element)
-                        }
+                    CourseView()
+                    if pinTapped != nil && pinsLocations[pinTapped!] != nil {
+                        PathToPin()
                     }
                 }
             }
@@ -111,11 +102,14 @@ struct ContentView: View {
             }
         }
         .task(id: selectedCourse) {
+            makePinsLocations()
+            
+            // for testing
             if let coords = selectedCourse?.elements.first?.coordinate {
                 userLocation = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
             }
         }
-
+        
         // testing
         .onAppear {
             print("\n---> stored golf courses with details in SwiftData")
@@ -126,64 +120,93 @@ struct ContentView: View {
             }
             print()
         }
-
-//        .task {
-//            for course in courses {
-//                do {
-//                    print("---> start import details of \(course)")
-//                    try await OverpassClient().importOneGolfCourse(
-//                        modelContext, golfCourses: golfCourses, osmID: course
-//                    )
-//                    print("---> done import details of \(course)\n")
-//                } catch {
-//                    print(error)
-//                }
-//            }
-//        }
         
-//        .task {
-//            do {
-//                print("---> start import all courses, but not their details")
-//                try await OverpassClient().importGolfCourses(modelContext)
-//                print("---> finished import all courses")
-//            } catch {
-//                print(error)
-//            }
-//        }
+        //        .task {
+        //            for course in courses {
+        //                do {
+        //                    print("---> start import details of \(course)")
+        //                    try await OverpassClient().importOneGolfCourse(
+        //                        modelContext, golfCourses: golfCourses, osmID: course
+        //                    )
+        //                    print("---> done import details of \(course)\n")
+        //                } catch {
+        //                    print(error)
+        //                }
+        //            }
+        //        }
         
+        //        .task {
+        //            do {
+        //                print("---> start import all courses, but not their details")
+        //                try await OverpassClient().importGolfCourses(modelContext)
+        //                print("---> finished import all courses")
+        //            } catch {
+        //                print(error)
+        //            }
+        //        }
+        
+    }
+    
+    private func makePinsLocations() {
+        pinsLocations = [:]
+        // create the pins dictionary
+        if let pins = selectedCourse?.elements.filter({$0.golfType == "pin"}) {
+            for pin in pins {
+                if let pinLoc = pin.centerLocation {
+                    pinsLocations[pin.osmID] = pinLoc
+                }
+            }
+        }
+        print("---> pinsLocations: \(pinsLocations.count)")
     }
     
     private func courseName(of osmid: Int64) -> String {
         if let theCourse = golfCourses.first(where: { $0.osmID == osmid }),
-        let name = theCourse.name {
+           let name = theCourse.name {
             return name
         }
         return "no name"
     }
-
+    
     @MapContentBuilder
-    func PathToPin(element: OSMElementModel) -> some MapContent {
-        if element.osmID == pinTapped {
-            if let thePin = element.centerLocation {
-                let distance = userLocation.distance(from: thePin)
-
-                let labelCoordinate = Utility.pointAlongLine(
-                    from: userLocation.coordinate,
-                    to: thePin.coordinate,
-                    fraction: 0.9
-                )
-
-                MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
+    func CourseView() -> some MapContent {
+        let _ = print("---> CourseView displayedElements: \(displayedElements.count)")
+        ForEach(displayedElements) { element in
+            if let geometry = element.geometry, !geometry.isEmpty {
+                CourseFeaturesView(geometry: geometry, element: element)
+            }
+            else  {
+                PointView(element: element)
+            }
+            if let members = element.members {
+                MembersView(members: members)
+            }
+        }
+    }
+    
+    @MapContentBuilder
+    func PathToPin() -> some MapContent {
+        let _ = print("---> PathToPin")
+        if let thisPinid = pinTapped, let thePin = pinsLocations[thisPinid] {
+            
+            let distance = userLocation.distance(from: thePin)
+            
+            let labelCoordinate = Utility.pointAlongLine(
+                from: userLocation.coordinate,
+                to: thePin.coordinate,
+                fraction: 0.9
+            )
+            
+            MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
                 .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [1, 10]))
                 .mapOverlayLevel(level: .aboveLabels)
-
-                Annotation("", coordinate: labelCoordinate, anchor: .top) {
-                    Text(Utility.asString(distance))
-                        .font(.title3)
-                        .padding(5)
-                        .foregroundStyle(.white)
-                        .background(.blue, in: RoundedRectangle(cornerRadius: 12))
-                }
+            
+            Annotation("", coordinate: labelCoordinate, anchor: .top) {
+                Text(Utility.asString(distance))
+                    .font(.title3)
+                    .padding(5)
+                    .foregroundStyle(.white)
+                    .background(.blue, in: RoundedRectangle(cornerRadius: 12))
             }
         }
     }
@@ -212,7 +235,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     @MapContentBuilder
     func MembersView(members: [OSMMember]) -> some MapContent {
         ForEach(members) { member in
@@ -221,8 +244,8 @@ struct ContentView: View {
                 if coordinates.count >= 3 {
                     MapPolygon(coordinates: coordinates)
                         .foregroundStyle(member.role == "inner"
-                            ? .white.opacity(0.5)
-                            : .orange.opacity(0.2)
+                                         ? .white.opacity(0.5)
+                                         : .orange.opacity(0.2)
                         )
                 } else if coordinates.count >= 2 {
                     MapPolyline(coordinates: coordinates)
@@ -316,71 +339,3 @@ struct ContentView: View {
     }
     
 }
-
-
-
-/*
- golfCourses
- 544123041
- 500668040
- 
- 706245604
- 487691175
- 708715709
- 138736091
- 138736088
- 138736091
- 
- */
-
-
-/*
- 
- 
-//        .task {
-//            do {
-//                print("---> start import all courses")
-//                try await OverpassClient().importGolfCourses(modelContext)
-//                print("---> finished import all courses")
-//            } catch {
-//                print(error)
-//            }
-//        }
-
-//        .task {
-//            do {
-//                try await OverpassClient().importOneGolfCourse(
-//                    modelContext, golfCourses: golfCourses, wayid: courseid
-//                )
-//                print("---> done import \(courseid)")
-//            } catch {
-//                print(error)
-//            }
-//        }
-
- 
- //        .onAppear {
- //            if let resutls = golfCourses.first(where: {$0.osmID == 697251926}) {
- //                print("---> resutls: \(resutls.elements.count)")
- //                for el in resutls.elements {
- //                    if el.geometry != nil {
- //                        print("---> type: \(el.type) members: \(el.members?.count)  geom: \(el.geometry?.count)")
- //                    }
- //                }
- //            }
- //        }
- 
-//        .task {
-//            do {
-//                try await OverpassClient().importOneGolfCourse(
-//                    modelContext, golfCourses: golfCourses, wayid: courseid
-//                )
-//                print("---> done import task")
-//        //        let resutls = try await OverpassClient().getGolfCourse(osmID: courseid)
-//        //        print("---> fetching resutls: \(resutls.elements.count)")
-//            } catch {
-//                print(error)
-//            }
-//        }
-
-*/

@@ -161,14 +161,40 @@ struct ContentView: View {
         return "no name"
     }
     
+    private func asString(_ dist: Double) -> String {
+        if dist < 1_000 {
+            return "\(Int(dist)) m "
+        } else {
+            return String(format: "%.1f km ", dist / 1_000)
+        }
+    }
+    
+    private func mapMidpoint(_ start: CLLocationCoordinate2D, _ end: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
+        let a = MKMapPoint(start)
+        let b = MKMapPoint(end)
+        return MKMapPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2).coordinate
+    }
+
     @MapContentBuilder
     func PathToPin(element: OSMElementModel) -> some MapContent {
         if element.osmID == pinTapped {
             if let thePin = element.centerLocation {
                 let distance = userLocation.distance(from: thePin)
-                let _ = print("---> distance: \(distance)")
+               // let midpoint = mapMidpoint(userLocation.coordinate, thePin.coordinate)
+               // let _ = print("---> distance: \(distance)")
+
                 MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
                 .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [1, 10]))
+
+                Annotation("", coordinate: thePin.coordinate, anchor: .bottom) {
+                    Text(asString(distance))
+                        .font(.title3)
+                        .padding(5)
+                        .foregroundStyle(.white)
+                        .background(.blue, in: RoundedRectangle(cornerRadius: 12))
+                        .offset(y: -13)
+                }
+            
             }
         }
     }

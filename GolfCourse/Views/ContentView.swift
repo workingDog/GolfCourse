@@ -21,8 +21,6 @@ struct ContentView: View {
     @State private var courseid: Int64 = 544123041
     
     @State private var pinTapped: Int64?
-    
-    @State private var showDistToPin = false
     @State private var userLocation = CLLocation()  // for testing
     
     @AppStorage("storedMapStyle") private var mapType = 0
@@ -66,7 +64,7 @@ struct ContentView: View {
                         if let members = element.members {
                             MembersView(members: members)
                         }
-                        if showDistToPin {
+                        if pinTapped != nil {
                             PathToPin(element: element)
                         }
                     }
@@ -87,14 +85,6 @@ struct ContentView: View {
                         showCourse.toggle()
                     } label: {
                         Image(systemName: "figure.golf")
-                            .foregroundStyle(Color.primary)
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showDistToPin.toggle()
-                    } label: {
-                        Image(systemName: "mappin.and.ellipse")
                             .foregroundStyle(Color.primary)
                     }
                 }
@@ -196,7 +186,7 @@ struct ContentView: View {
                         .font(.title3)
                 } else if element.golfType == "pin" {
                     Button {
-                        pinTapped = element.osmID
+                        pinTapped = pinTapped == element.osmID ? nil : element.osmID
                     } label: {
                         Image(systemName: "flag.fill")
                             .foregroundStyle(.red)

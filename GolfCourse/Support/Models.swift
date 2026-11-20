@@ -68,6 +68,7 @@ final class OSMElementModel {
     var golfType: String { tags?["golf"] ?? "" }
     var name: String { tags?["name"] ?? "" }
     var ref: String { tags?["ref"] ?? "" }
+    var hole: String { tags?["hole"] ?? "" }
 }
 
 struct Osm3S: Codable {

@@ -53,7 +53,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            Map(position: $cameraPosition) {
+            Map(position: $cameraPosition, selection: $pinTapped) {
                 if selectedCourse != nil && showCourse {
                     CourseView()
                     if pinTapped != nil && pinsLocations[pinTapped!] != nil {
@@ -62,6 +62,9 @@ struct ContentView: View {
                 }
             }
             .mapStyle(mapStyle)
+//            .onChange(of: pinTapped) { oldValue, newValue in
+//                print("----> .onChange(of: pinTapped)  \(pinTapped)")
+//            }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("", selection: $mapType) {
@@ -210,9 +213,25 @@ struct ContentView: View {
             }
         }
     }
+
     
     @MapContentBuilder
     func PointView(element: OSMElementModel) -> some MapContent {
+        if let coordinate = element.coordinate {
+            if element.golfType == "pin" {
+                Marker(
+                    element.ref.isEmpty ? element.hole : element.ref,
+                    systemImage: "flag.fill",
+                    coordinate: coordinate
+                )
+                .tint(.red)
+                .tag(element.osmID)
+            }
+        }
+    }
+
+    @MapContentBuilder
+    func PointView1(element: OSMElementModel) -> some MapContent {
         if let coordinate = element.coordinate {
             Annotation(
                 element.name.isEmpty ? element.golfType : element.name,
@@ -223,14 +242,12 @@ struct ContentView: View {
                         .foregroundStyle(.red)
                         .font(.title3)
                 } else if element.golfType == "pin" {
-                    Button {
-                        pinTapped = pinTapped == element.osmID ? nil : element.osmID
-                    } label: {
-                        Image(systemName: "flag.fill")
-                            .foregroundStyle(.red)
-                            .font(.title3)
-                    }
-                    .buttonStyle(.plain)
+                    Image(systemName: "flag.fill")
+                        .foregroundStyle(.red)
+                        .font(.title3)
+                        .onTapGesture {
+                            pinTapped = pinTapped == element.osmID ? nil : element.osmID
+                        }
                 }
             }
         }

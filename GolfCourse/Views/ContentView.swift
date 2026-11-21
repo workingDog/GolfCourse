@@ -46,7 +46,11 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Map(position: $cameraPosition, selection: $mapSelection) {
-                
+
+                Annotation("", coordinate: userLocation.coordinate) {
+                    PulsatingLocation()
+                }
+   
                 // All golf clubs
                 ForEach(clubs) { club in
                     Marker(club.name ?? "Golf Club",

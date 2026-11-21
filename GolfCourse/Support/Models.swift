@@ -10,7 +10,7 @@ import CoreLocation
 
 
 //-------------------------------------------------------------------
-//------------------------japan.json---------------------------------
+//------------------------json---------------------------------------
 //-------------------------------------------------------------------
 
 struct CountryData: Codable {
@@ -32,11 +32,6 @@ struct Club: Codable {
     let boundary: Rings
     let courses: [Course]
     let features: [CourseFeature]
-    
-//    var hasMeaningfulData: Bool {
-//        courses.contains { $0.holes.contains { !$0.path.isEmpty } } ||
-//        features.contains { !$0.geometry.outer.isEmpty || !$0.geometry.inner.isEmpty }
-//    }
     
     // club with pin data
     var hasMeaningfulData: Bool {
@@ -168,7 +163,7 @@ final class HoleModel {
 final class FeatureModel {
     var osm: String
     var type: String
-    var point: Point?  // latitude, longitude
+    var point: Point?  // [latitude, longitude]
     var outer: Rings
     var inner: Rings
     var club: ClubModel?
@@ -180,12 +175,7 @@ final class FeatureModel {
         outer = feature.geometry.outer
         inner = feature.geometry.inner
     }
-
-//    var pointCoord: CLLocationCoordinate2D? {
-//        guard let point = point, point.count >= 2 else { return nil }
-//        return CLLocationCoordinate2D(latitude: point[0],longitude: point[1])
-//    }
-    
+  
 }
 
 
@@ -343,4 +333,3 @@ struct OSMMember: Identifiable, Codable {
     let role: String?
     let geometry: [OSMCoordinate]?
 }
-

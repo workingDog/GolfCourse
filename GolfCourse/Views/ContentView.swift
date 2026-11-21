@@ -14,7 +14,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     
     @Query private var clubs: [ClubModel]
-
+    
     @AppStorage("storedMapStyle") private var mapType = 0
     
     private var selectedClub: ClubModel? {
@@ -24,7 +24,7 @@ struct ContentView: View {
     private var selectedPin: FeatureModel? {
         selectedClub?.features.first { $0.osm == selectedPinID }
     }
-
+    
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var selectedClubID: String? = "osm-jp-2555"
     @State private var selectedPinID: String?
@@ -33,13 +33,13 @@ struct ContentView: View {
     
     // for testing
     @State private var userLocation = CLLocation(latitude: 35.622, longitude: 139.837)
-
+    
     var mapStyle: MapStyle {
         switch(mapType) {
-        case 0: .standard()
-        case 1: .hybrid()
-        case 2: .imagery(elevation: .realistic)
-        default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
+            case 0: .standard()
+            case 1: .hybrid()
+            case 2: .imagery(elevation: .realistic)
+            default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
     
@@ -57,7 +57,7 @@ struct ContentView: View {
                     .tag(club.id)
                 }
                 
-                if let club = selectedClub, showPins {
+                if let club = selectedClub {
                     
                     // Selected club boundary
                     ForEach(Array(club.boundary.enumerated()), id: \.offset) { item in
@@ -83,33 +83,35 @@ struct ContentView: View {
                                 .foregroundStyle(Utility.featureColor(feature.type).opacity(0.4))
                         }
                         
-                        // Feature points (including pins)
-                        if let point = feature.point, point.count >= 2 {
-                            Annotation( "",
-                                        coordinate: CLLocationCoordinate2D(
-                                            latitude: point[0],
-                                            longitude: point[1]
-                                        ),
-                                        anchor: .bottom
-                            ) {
-                                Image(systemName: "flag.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(.red)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        if selectedPinID == feature.osm {
-                                            selectedPinID = nil
-                                        } else {
-                                            selectedClubID = club.id
-                                            selectedPinID = feature.osm
+                        if showPins {
+                            // Feature points (including pins)
+                            if let point = feature.point, point.count >= 2 {
+                                Annotation( "",
+                                            coordinate: CLLocationCoordinate2D(
+                                                latitude: point[0],
+                                                longitude: point[1]
+                                            ),
+                                            anchor: .bottom
+                                ) {
+                                    Image(systemName: "flag.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(.red)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            if selectedPinID == feature.osm {
+                                                selectedPinID = nil
+                                            } else {
+                                                selectedClubID = club.id
+                                                selectedPinID = feature.osm
+                                            }
                                         }
-                                    }
+                                }
                             }
                         }
                     }
                     
                     // Path and distance to the selected pin
-                    if selectedPinID != nil {
+                    if selectedPinID != nil, showPins {
                         PathToPin()
                     }
                 }
@@ -127,7 +129,7 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                           showPins.toggle()
+                        showPins.toggle()
                     } label: {
                         Image(systemName: showPins ? "mappin" : "mappin.slash")
                             .foregroundStyle(Color.primary)
@@ -152,9 +154,6 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedClubID) {
-//            if let club = selectedClub {
-//                userLocation = CLLocation(latitude: club.lat, longitude: club.lng)
-//            }
             // for testing
             if let club = selectedClub {
                 let coord = CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng)
@@ -168,8 +167,8 @@ struct ContentView: View {
             zoomToClub()
             
             // ---> selectedClub: Optional("若洲ゴルフリンクス")  Optional("osm-jp-2555")
-      //      print("---> selectedClub: \(selectedClub?.name)  \(selectedClub?.id)")
-
+            //      print("---> selectedClub: \(selectedClub?.name)  \(selectedClub?.id)")
+            
             //            let featureTypes = Set(clubs.flatMap { $0.features.map(\.type) })
             //            print("Feature types: \(featureTypes.sorted())")
             
@@ -190,19 +189,13 @@ struct ContentView: View {
         }
         
     }
-
-    func test() {
-        let clubsLoaded = Utility.loadClubs()
-        let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
-        print("---> usefulClubs: \(usefulClubs.count)")
-    }
     
     func zoomToClub() {
         guard let club = selectedClub else { return }
         cameraPosition = .region(
             MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng),
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
             )
         )
     }

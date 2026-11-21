@@ -80,6 +80,37 @@ struct OverpassClient {
         [out:json][timeout:180];
 
         // 1. Retrieve the golf course boundary
+        \(type)(\(osmID))->.course;
+
+        // 2. Convert the boundary into an area
+        .course map_to_area -> .courseArea;
+
+        // 3. Retrieve all golf-related elements inside the course
+        (
+            .course;
+            nwr(area.courseArea)["golf"];
+            nwr(area.courseArea)["sport"="golf"];
+        )->.courseElements;
+
+        // 4. Retrieve underlying nodes and relation members
+        .courseElements >> ->.courseMembers;
+
+        // 5. Combine original elements and members
+        (
+            .courseElements;
+            .courseMembers;
+        );
+
+        // 6. Return tags, node references and geometry
+        out body geom;
+        """
+    }
+    
+    func golfCourseDetailsQuery1(osmID: Int64, type: String = "way") -> String {
+        """
+        [out:json][timeout:180];
+
+        // 1. Retrieve the golf course boundary
         way(\(osmID))->.course;
 
         // 2. Convert the boundary into an area

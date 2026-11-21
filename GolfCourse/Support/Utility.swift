@@ -39,4 +39,38 @@ struct Utility {
         return point.coordinate
     }
     
+    static func coordinates(_ path: HolePath) -> [CLLocationCoordinate2D] {
+        path.compactMap { point in
+            guard point.count >= 2 else { return nil }
+            return CLLocationCoordinate2D(latitude: point[0], longitude: point[1])
+        }
+    }
+    
+    static func featureColor(_ type: String) -> Color {
+        switch type {
+            case "green": .green
+            case "fairway": .mint
+            case "bunker": .yellow
+            case "water_hazard": .blue
+            case "tee": .orange
+            default: .gray
+        }
+    }
+    
+    static func loadClubs() -> [Club] {
+        guard
+            let url = Bundle.main.url(forResource: "japan", withExtension: "json"),
+            let data = try? Data(contentsOf: url)
+                else {
+            return []
+        }
+        do {
+            let result = try JSONDecoder().decode(CountryData.self, from: data)
+            return result.clubs
+        } catch {
+            print("Failed to load data:", error)
+            return []
+        }
+    }
+
 }

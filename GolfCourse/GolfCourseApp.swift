@@ -27,11 +27,15 @@ struct GolfCourseApp: App {
             print("Failed to create Application Support directory:", error)
         }
 
-        let storeURL = appSupportDir.appending(path: "golf.sqlite")
+        let storeURL = appSupportDir.appending(path: "golfjapan.sqlite")
 
         print("---> database at: \(storeURL.absoluteString)\n")
 
-        let schema = Schema([GolfCourse.self, OSMElementModel.self])
+        let schema = Schema([ClubModel.self,
+                             CourseModel.self,
+                             HoleModel.self,
+                             FeatureModel.self])
+        
         let config = ModelConfiguration(schema: schema, url: storeURL)
         do {
             return try ModelContainer(for: schema, configurations: config)

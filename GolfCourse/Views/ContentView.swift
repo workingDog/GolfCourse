@@ -13,58 +13,110 @@ import MapKit
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     
-    @Query private var golfCourses: [GolfCourse]
-    
-    @State private var cameraPosition: MapCameraPosition = .automatic
-    @State private var showCourse = true
-    @State private var courses: [Int64] = [544123041, 487691175, 706245604, 138736088]
-    @State private var courseid: Int64 = 544123041
-    
-    @State private var pinTapped: Int64?
-    @State private var pinsLocations: [Int64 : CLLocation] = [:]
-    @State private var userLocation = CLLocation()  // for testing
-    
+    @Query private var clubs: [ClubModel]
+
     @AppStorage("storedMapStyle") private var mapType = 0
     
+    private var selectedClub: ClubModel? {
+        clubs.first { $0.id == selectedClubID }
+    }
+    
+    private var selectedPin: FeatureModel? {
+        selectedClub?.features.first { $0.osm == selectedPinID }
+    }
+
+    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var selectedClubID: String? = "osm-jp-2555"
+    @State private var selectedPinID: String?
+    @State private var displayedClubID: String?
+    
+    // for testing
+    @State private var userLocation = CLLocation(latitude: 35.622, longitude: 139.837)
+
     var mapStyle: MapStyle {
         switch(mapType) {
-            case 0: .standard()
-            case 1: .hybrid()
-            case 2: .imagery(elevation: .realistic)
-            default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
-        }
-    }
-    
-    private var selectedCourse: GolfCourse? {
-        golfCourses.first(where: { $0.osmID == courseid })
-    }
-    
-    // removes duplicate ref elements (the hole number)
-    private var displayedElements: [OSMElementModel] {
-        guard let course = selectedCourse else { return [] }
-        var seenHoleRefs = Set<String>()
-        return course.elements.filter { element in
-            guard element.golfType == "hole", !element.ref.isEmpty else {
-                return true
-            }
-            return seenHoleRefs.insert(element.ref).inserted
+        case 0: .standard()
+        case 1: .hybrid()
+        case 2: .imagery(elevation: .realistic)
+        default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
     
     var body: some View {
         NavigationStack {
-            Map(position: $cameraPosition, selection: $pinTapped) {
-                if selectedCourse != nil && showCourse {
-                    CourseView()
-                    if pinTapped != nil && pinsLocations[pinTapped!] != nil {
+            Map(position: $cameraPosition, selection: $selectedClubID) {
+                
+                // All golf clubs
+                ForEach(clubs) { club in
+                    Marker(club.name ?? "Golf Club",
+                           coordinate: CLLocationCoordinate2D(
+                            latitude: club.lat,
+                            longitude: club.lng
+                           ))
+                    .tag(club.id)
+                }
+                
+                // Selected club boundary
+                if let club = selectedClub {
+                    
+                    ForEach(Array(club.boundary.enumerated()), id: \.offset) { item in
+                        MapPolygon(coordinates: Utility.coordinates(item.element))
+                            .foregroundStyle(.green.opacity(0.15))
+                    }
+                    
+                    // Hole paths
+                    ForEach(club.courses) { course in
+                        ForEach(course.holes) { hole in
+                            if hole.path.count > 1 {
+                                MapPolyline(coordinates: Utility.coordinates(hole.path))
+                                    .stroke(.blue, lineWidth: 3)
+                            }
+                        }
+                    }
+                    
+                    // Golf course features
+                    ForEach(club.features) { feature in
+                        // Feature polygons
+                        ForEach(Array(feature.outer.enumerated()), id: \.offset) { item in
+                            MapPolygon(coordinates: Utility.coordinates(item.element))
+                                .foregroundStyle(Utility.featureColor(feature.type).opacity(0.4))
+                        }
+                        
+                        // Feature points (including pins)
+                        if let point = feature.point, point.count >= 2 {
+                            Annotation( "",
+                                        coordinate: CLLocationCoordinate2D(
+                                            latitude: point[0],
+                                            longitude: point[1]
+                                        ),
+                                        anchor: .bottom
+                            ) {
+                                Image(systemName: "flag.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(.red)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        if selectedPinID == feature.osm {
+                                            selectedPinID = nil
+                                        } else {
+                                            selectedClubID = club.id
+                                            selectedPinID = feature.osm
+                                            displayedClubID = club.id
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                    
+                    // Path and distance to the selected pin
+                    if selectedPinID != nil {
                         PathToPin()
                     }
+                    
                 }
+                
             }
             .mapStyle(mapStyle)
-//            .onChange(of: pinTapped) { oldValue, newValue in
-//                print("----> .onChange(of: pinTapped)  \(pinTapped)")
-//            }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("", selection: $mapType) {
@@ -76,7 +128,7 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showCourse.toggle()
+                        //   showCourse.toggle()
                     } label: {
                         Image(systemName: "figure.golf")
                             .foregroundStyle(Color.primary)
@@ -84,124 +136,71 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        ForEach(courses, id: \.self) { course in
-                            Button {
-                                courseid = course
-                            } label: {
-                                HStack {
-                                    Text(courseName(of: course))
-                                        .foregroundStyle(courseid == course ? Color.green : Color.primary)
-                                    Spacer()
-                                    if courseid == course {
-                                        Image(systemName: courseid == course ? "checkmark" : "circle")
-                                    }
-                                }
-                            }
-                        }
+                        
                     } label: {
                         Image(systemName: "list.triangle")
                     }
                 }
             }
         }
-        .task(id: selectedCourse) {
-            makePinsLocations()
+        .task {
+            print("---> clubs in SwiftData: \(clubs.count)\n")
+            zoomToClub()
+
+            //            let featureTypes = Set(clubs.flatMap { $0.features.map(\.type) })
+            //            print("Feature types: \(featureTypes.sorted())")
             
-            // for testing
-            if let coords = selectedCourse?.elements.first?.coordinate {
-                userLocation = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            }
-        }
-        
-        // testing
-        .onAppear {
-            print("\n---> stored golf courses with details in SwiftData")
-            for gc in golfCourses {
-                if gc.elements.count > 2 {
-                    print("---> gc: \(gc.name)  gc: \(gc.osmID)")
+            // load all the data into SwiftData once
+            guard clubs.isEmpty else { return }
+            print("---> loading clubs from japan.json")
+            let clubsLoaded = Utility.loadClubs()
+            let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
+            do {
+                for club in usefulClubs {
+                    modelContext.insert(ClubModel(club: club))
                 }
+                try modelContext.save()
+                print("---> Imported \(usefulClubs.count) clubs")
+            } catch {
+                print("SwiftData import error: \(error)")
             }
-            print()
         }
-        
-        //        .task {
-        //            for course in courses {
-        //                do {
-        //                    print("---> start import details of \(course)")
-        //                    try await OverpassClient().importOneGolfCourse(
-        //                        modelContext, golfCourses: golfCourses, osmID: course
-        //                    )
-        //                    print("---> done import details of \(course)\n")
-        //                } catch {
-        //                    print(error)
-        //                }
-        //            }
-        //        }
-        
-        //        .task {
-        //            do {
-        //                print("---> start import all courses, but not their details")
-        //                try await OverpassClient().importGolfCourses(modelContext)
-        //                print("---> finished import all courses")
-        //            } catch {
-        //                print(error)
-        //            }
-        //        }
+        .onChange(of: selectedClubID) {
+            zoomToClub()
+        }
         
     }
     
-    private func makePinsLocations() {
-        pinsLocations = [:]
-        // create the pins dictionary
-        if let pins = selectedCourse?.elements.filter({$0.golfType == "pin"}) {
-            for pin in pins {
-                if let pinLoc = pin.centerLocation {
-                    pinsLocations[pin.osmID] = pinLoc
-                }
-            }
-        }
-        print("---> pinsLocations: \(pinsLocations.count)")
+    func test() {
+        let clubsLoaded = Utility.loadClubs()
+        let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
+        print("---> usefulClubs: \(usefulClubs.count)")
     }
     
-    private func courseName(of osmid: Int64) -> String {
-        if let theCourse = golfCourses.first(where: { $0.osmID == osmid }),
-           let name = theCourse.name {
-            return name
-        }
-        return "no name"
-    }
-    
-    @MapContentBuilder
-    func CourseView() -> some MapContent {
-        let _ = print("---> CourseView displayedElements: \(displayedElements.count)")
-        ForEach(displayedElements) { element in
-            if let geometry = element.geometry, !geometry.isEmpty {
-                CourseFeaturesView(geometry: geometry, element: element)
-            }
-            else  {
-                PointView(element: element)
-            }
-            if let members = element.members {
-                MembersView(members: members)
-            }
-        }
+    func zoomToClub() {
+        guard let club = selectedClub else { return }
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            )
+        )
     }
     
     @MapContentBuilder
     func PathToPin() -> some MapContent {
-        let _ = print("---> PathToPin")
-        if let thisPinid = pinTapped, let thePin = pinsLocations[thisPinid] {
-            
+        if let point = selectedPin?.point, point.count >= 2 {
+            let thePin = CLLocation(latitude: point[0], longitude: point[1])
             let distance = userLocation.distance(from: thePin)
             
             let labelCoordinate = Utility.pointAlongLine(
                 from: userLocation.coordinate,
                 to: thePin.coordinate,
-                fraction: 0.9
+                fraction: 0.2
             )
             
             MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [1, 10]))
+                .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [1, 10]))
                 .mapOverlayLevel(level: .aboveLabels)
             
             Annotation("", coordinate: labelCoordinate, anchor: .top) {
@@ -210,147 +209,6 @@ struct ContentView: View {
                     .padding(5)
                     .foregroundStyle(.white)
                     .background(.blue, in: RoundedRectangle(cornerRadius: 12))
-            }
-        }
-    }
-
-    
-    @MapContentBuilder
-    func PointView(element: OSMElementModel) -> some MapContent {
-        if let coordinate = element.coordinate {
-            if element.golfType == "pin" {
-                Marker(
-                    element.ref.isEmpty ? element.hole : element.ref,
-                    systemImage: "flag.fill",
-                    coordinate: coordinate
-                )
-                .tint(.red)
-                .tag(element.osmID)
-            }
-        }
-    }
-
-    @MapContentBuilder
-    func PointView1(element: OSMElementModel) -> some MapContent {
-        if let coordinate = element.coordinate {
-            Annotation(
-                element.name.isEmpty ? element.golfType : element.name,
-                coordinate: coordinate
-            ) {
-                if element.golfType == "clubhouse" {
-                    Image(systemName: "building.2")
-                        .foregroundStyle(.red)
-                        .font(.title3)
-                } else if element.golfType == "pin" {
-                    Image(systemName: "flag.fill")
-                        .foregroundStyle(.red)
-                        .font(.title3)
-                        .onTapGesture {
-                            pinTapped = pinTapped == element.osmID ? nil : element.osmID
-                        }
-                }
-            }
-        }
-    }
-    
-    @MapContentBuilder
-    func MembersView(members: [OSMMember]) -> some MapContent {
-        ForEach(members) { member in
-            if let geometry = member.geometry, !geometry.isEmpty {
-                let coordinates = geometry.map(\.mapCoordinate)
-                if coordinates.count >= 3 {
-                    MapPolygon(coordinates: coordinates)
-                        .foregroundStyle(member.role == "inner"
-                                         ? .white.opacity(0.5)
-                                         : .orange.opacity(0.2)
-                        )
-                } else if coordinates.count >= 2 {
-                    MapPolyline(coordinates: coordinates)
-                        .stroke(.orange, lineWidth: 2)
-                }
-            }
-        }
-    }
-    
-    @MapContentBuilder
-    func CourseFeaturesView(geometry: [OSMCoordinate], element: OSMElementModel) -> some MapContent {
-        let coordinates = geometry.map(\.mapCoordinate)
-        
-        switch element.golfType {
-            
-        case "course":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.blue.opacity(0.2))
-                    .stroke(.blue, lineWidth: 2)
-            }
-            
-        case "fairway":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.green.opacity(0.4))
-            }
-            
-        case "green":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.green)
-            }
-            
-        case "tee":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.blue.opacity(0.5))
-            }
-            
-        case "bunker":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.yellow)
-            }
-            
-        case "water_hazard":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.cyan.opacity(0.5))
-            }
-            
-        case "rough":
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.green.opacity(0.3))
-            }
-            
-        case "cartpath":
-            if coordinates.count >= 2 {
-                MapPolyline(coordinates: coordinates)
-                    .stroke(.gray, lineWidth: 4)
-            }
-            
-        case "hole":
-            if let coordinate = element.center?.mapCoordinate
-                ?? element.geometry?.first?.mapCoordinate {
-                Annotation("Hole \(element.ref)", coordinate: coordinate) {
-                    Text(element.ref.isEmpty ? "?" : element.ref)
-                        .font(.caption.bold())
-                        .foregroundStyle(.black)
-                        .padding(7)
-                        .background(.white, in: Circle())
-                        .overlay {
-                            Circle().stroke(.green, lineWidth: 2)
-                        }
-                }
-            }
-            
-        default:
-            if coordinates.count >= 3 {
-                MapPolygon(coordinates: coordinates)
-                    .foregroundStyle(.clear)
-                    .stroke(.green, lineWidth: 2)
-            } else if coordinates.count >= 2 {
-                MapPolyline(coordinates: coordinates)
-                    .foregroundStyle(.purple.opacity(0.2))
-                    .stroke(.purple, lineWidth: 2)
             }
         }
     }

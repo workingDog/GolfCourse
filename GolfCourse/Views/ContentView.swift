@@ -131,7 +131,7 @@ struct ContentView: View {
                     Button {
                         showPins.toggle()
                     } label: {
-                        Image(systemName: showPins ? "mappin" : "mappin.slash")
+                        Image(systemName: showPins ?  "flag.fill" : "flag")
                             .foregroundStyle(Color.primary)
                     }
                 }

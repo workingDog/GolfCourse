@@ -28,7 +28,8 @@ struct ContentView: View {
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var selectedClubID: String? = "osm-jp-2555"
     @State private var selectedPinID: String?
-    @State private var displayedClubID: String?
+    @State private var mapSelection: String?
+    @State private var showPins = true
     
     // for testing
     @State private var userLocation = CLLocation(latitude: 35.622, longitude: 139.837)
@@ -44,7 +45,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            Map(position: $cameraPosition, selection: $selectedClubID) {
+            Map(position: $cameraPosition, selection: $mapSelection) {
                 
                 // All golf clubs
                 ForEach(clubs) { club in
@@ -56,9 +57,9 @@ struct ContentView: View {
                     .tag(club.id)
                 }
                 
-                // Selected club boundary
-                if let club = selectedClub {
+                if let club = selectedClub, showPins {
                     
+                    // Selected club boundary
                     ForEach(Array(club.boundary.enumerated()), id: \.offset) { item in
                         MapPolygon(coordinates: Utility.coordinates(item.element))
                             .foregroundStyle(.green.opacity(0.15))
@@ -101,7 +102,6 @@ struct ContentView: View {
                                         } else {
                                             selectedClubID = club.id
                                             selectedPinID = feature.osm
-                                            displayedClubID = club.id
                                         }
                                     }
                             }
@@ -112,7 +112,6 @@ struct ContentView: View {
                     if selectedPinID != nil {
                         PathToPin()
                     }
-                    
                 }
                 
             }
@@ -128,24 +127,48 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        //   showCourse.toggle()
+                           showPins.toggle()
                     } label: {
-                        Image(systemName: "figure.golf")
+                        Image(systemName: showPins ? "mappin" : "mappin.slash")
                             .foregroundStyle(Color.primary)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        
+                        Picker("Club", selection: $selectedClubID) {
+                            ForEach(clubs) { club in
+                                Text(club.name ?? "Unknown Club").tag(club.id)
+                            }
+                        }
                     } label: {
-                        Image(systemName: "list.triangle")
+                        Image(systemName: "figure.golf")
                     }
                 }
             }
         }
+        .onChange(of: mapSelection) { oldValue, newValue in
+            if let newValue {
+                selectedClubID = newValue
+            }
+        }
+        .onChange(of: selectedClubID) {
+//            if let club = selectedClub {
+//                userLocation = CLLocation(latitude: club.lat, longitude: club.lng)
+//            }
+            // for testing
+            if let club = selectedClub {
+                let coord = CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng)
+                let offset = 150.0 / 111_000.0
+                userLocation = CLLocation(latitude: coord.latitude + offset, longitude: coord.longitude)
+            }
+            zoomToClub()
+        }
         .task {
             print("---> clubs in SwiftData: \(clubs.count)\n")
             zoomToClub()
+            
+            // ---> selectedClub: Optional("若洲ゴルフリンクス")  Optional("osm-jp-2555")
+      //      print("---> selectedClub: \(selectedClub?.name)  \(selectedClub?.id)")
 
             //            let featureTypes = Set(clubs.flatMap { $0.features.map(\.type) })
             //            print("Feature types: \(featureTypes.sorted())")
@@ -165,12 +188,9 @@ struct ContentView: View {
                 print("SwiftData import error: \(error)")
             }
         }
-        .onChange(of: selectedClubID) {
-            zoomToClub()
-        }
         
     }
-    
+
     func test() {
         let clubsLoaded = Utility.loadClubs()
         let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
@@ -193,22 +213,24 @@ struct ContentView: View {
             let thePin = CLLocation(latitude: point[0], longitude: point[1])
             let distance = userLocation.distance(from: thePin)
             
-            let labelCoordinate = Utility.pointAlongLine(
-                from: userLocation.coordinate,
-                to: thePin.coordinate,
-                fraction: 0.2
-            )
-            
-            MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [1, 10]))
-                .mapOverlayLevel(level: .aboveLabels)
-            
-            Annotation("", coordinate: labelCoordinate, anchor: .top) {
-                Text(Utility.asString(distance))
-                    .font(.title3)
-                    .padding(5)
-                    .foregroundStyle(.white)
-                    .background(.blue, in: RoundedRectangle(cornerRadius: 12))
+            if distance <= 2000.0 {
+                let labelCoordinate = Utility.pointAlongLine(
+                    from: userLocation.coordinate,
+                    to: thePin.coordinate,
+                    fraction: 0.2
+                )
+                
+                MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])
+                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round, dash: [1, 10]))
+                    .mapOverlayLevel(level: .aboveLabels)
+                
+                Annotation("", coordinate: labelCoordinate, anchor: .top) {
+                    Text(Utility.asString(distance))
+                        .font(.title3)
+                        .padding(5)
+                        .foregroundStyle(.white)
+                        .background(.blue, in: RoundedRectangle(cornerRadius: 12))
+                }
             }
         }
     }

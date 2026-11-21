@@ -141,13 +141,13 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Picker("Club", selection: $selectedClubID) {
+                        Picker("Japan", selection: $selectedClubID) {
                             ForEach(clubs) { club in
                                 Text(club.name ?? "Unknown Club").tag(club.id)
                             }
                         }
                     } label: {
-                        Image(systemName: "figure.golf")
+                        Image(systemName: "house.and.flag")
                     }
                 }
             }

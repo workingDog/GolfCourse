@@ -38,7 +38,7 @@ struct PulsatingLocation: View {
                 }
                 .frame(width: 60, height: 60)
                 
-                Image(systemName: "person.circle")
+                Image(systemName: "figure.golf.circle")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 30, height: 30)

@@ -47,9 +47,22 @@ struct GolfCourseApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            GroupView()
         }
         .modelContainer(sharedModelContainer)
     }
 }
 
+/*
+ 1 Create Firebase project and register the iOS application
+ 2 Install Firebase SDK using Swift Package Manager
+ 3 Initialise Firebase in SwiftUI
+ 4 Implement anonymous authentication
+ 5 Create and join golfing groups
+ 6 Implement Realtime Database JSON storage
+ 7 Implement GPS location sharing
+ 8 Display other golfers on your existing map
+ 9 Implement disconnect handling and group cleanup
+ 10 Configure Firebase Security Rules
+ 11 Implement App Check with Apple App Attest
+ */

@@ -37,7 +37,6 @@ struct Club: Codable {
     var hasMeaningfulData: Bool {
         features.contains { $0.geometry.point?.count == 2 }
     }
- 
 }
 
 struct Course: Codable {

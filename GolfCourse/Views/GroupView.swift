@@ -38,11 +38,31 @@ enum GroupDestination: Hashable {
 }
 
 struct GroupView: View {
+    @Environment(\.modelContext) private var modelContext
+    
+    @Query private var clubs: [ClubModel]
+    
     @State private var path: [GroupDestination] = []
     
     var body: some View {
         NavigationStack(path: $path) {
             ClubSelectionView()
+        }
+        .task {
+//            // load all the data into SwiftData once
+//            guard clubs.isEmpty else { return }
+//            print("---> loading clubs from japan.json")
+//            let clubsLoaded = Utility.loadClubs()
+//            let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
+//            do {
+//                for club in usefulClubs {
+//                    modelContext.insert(ClubModel(club: club))
+//                }
+//                try modelContext.save()
+//                print("---> Imported \(usefulClubs.count) clubs")
+//            } catch {
+//                print("SwiftData import error: \(error)")
+//            }
         }
     }
     

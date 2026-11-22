@@ -117,44 +117,13 @@ struct CourseView: View {
                 }
             }
         }
-        //       }
-        //        .onChange(of: mapSelection) { oldValue, newValue in
-        //            if let newValue {
-        //                selectedClubID = newValue
-        //            }
-        //        }
-        //        .onChange(of: selectedClubID) {
-        //            // for testing
-        //            if let club = selectedClub {
-        //                let coord = CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng)
-        //                let offset = 150.0 / 111_000.0
-        //                userLocation = CLLocation(latitude: coord.latitude + offset, longitude: coord.longitude)
-        //            }
-        //            zoomToClub()
-        //        }
         .task {
             zoomToClub()
             
             let coord = CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng)
             let offset = 150.0 / 111_000.0
             userLocation = CLLocation(latitude: coord.latitude + offset, longitude: coord.longitude)
-            
-            // load all the data into SwiftData once
-            //            guard clubs.isEmpty else { return }
-            //            print("---> loading clubs from japan.json")
-            //            let clubsLoaded = Utility.loadClubs()
-            //            let usefulClubs = clubsLoaded.filter(\.hasMeaningfulData)
-            //            do {
-            //                for club in usefulClubs {
-            //                    modelContext.insert(ClubModel(club: club))
-            //                }
-            //                try modelContext.save()
-            //                print("---> Imported \(usefulClubs.count) clubs")
-            //            } catch {
-            //                print("SwiftData import error: \(error)")
-            //            }
         }
-        
     }
     
     func zoomToClub() {

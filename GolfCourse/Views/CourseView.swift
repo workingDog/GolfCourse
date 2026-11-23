@@ -31,16 +31,17 @@ struct CourseView: View {
     
     var mapStyle: MapStyle {
         switch(mapType) {
-        case 0: .standard()
-        case 1: .hybrid()
-        case 2: .imagery(elevation: .realistic)
-        default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
+            case 0: .standard()
+            case 1: .hybrid()
+            case 2: .imagery(elevation: .realistic)
+            default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
     
     var body: some View {
         Map(position: $cameraPosition, selection: $mapSelection) {
             
+            // User location
             Annotation("", coordinate: userLocation.coordinate) {
                 PulsatingLocation()
             }
@@ -72,12 +73,10 @@ struct CourseView: View {
                 if showPins {
                     // Feature points (including pins)
                     if let point = feature.point, point.count >= 2 {
-                        Annotation( "",
-                                    coordinate: CLLocationCoordinate2D(
-                                        latitude: point[0],
-                                        longitude: point[1]
-                                    ),
-                                    anchor: .bottom
+                        Annotation( "", coordinate: CLLocationCoordinate2D(
+                            latitude: point[0],
+                            longitude: point[1]
+                        ), anchor: .bottom
                         ) {
                             Image(systemName: "flag.fill")
                                 .font(.title3)
@@ -119,7 +118,7 @@ struct CourseView: View {
         }
         .task {
             zoomToClub()
-            
+            // for testing
             let coord = CLLocationCoordinate2D(latitude: club.lat, longitude: club.lng)
             let offset = 150.0 / 111_000.0
             userLocation = CLLocation(latitude: coord.latitude + offset, longitude: coord.longitude)
@@ -141,6 +140,7 @@ struct CourseView: View {
             let thePin = CLLocation(latitude: point[0], longitude: point[1])
             let distance = userLocation.distance(from: thePin)
             
+            // max 2km
             if distance <= 2000.0 {
                 let labelCoordinate = Utility.pointAlongLine(
                     from: userLocation.coordinate,

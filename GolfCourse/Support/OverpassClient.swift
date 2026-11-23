@@ -9,6 +9,7 @@ import CoreLocation
 import SwiftData
 
 
+// not in used anymore
 struct OverpassClient {
 
     let sessionManager: URLSession

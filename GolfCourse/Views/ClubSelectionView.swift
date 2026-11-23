@@ -21,9 +21,9 @@ struct ClubSelectionView: View {
     @State private var showMap = false
     
     private var filteredClubs: [ClubModel] {
-        guard !searchText.isEmpty else { return clubs }
+        guard !searchText.trim().isEmpty else { return clubs }
         return clubs.filter {
-            $0.name?.localizedCaseInsensitiveContains(searchText) == true
+            $0.name?.trim().localizedCaseInsensitiveContains(searchText) == true
         }
     }
 

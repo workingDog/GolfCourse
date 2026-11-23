@@ -10,6 +10,16 @@ import SwiftUI
 import MapKit
 
 
+extension String {
+    func trim() -> String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    func trimLowercased() -> String {
+        trim().lowercased()
+    }
+}
+
 struct Utility {
 
     static func asString(_ dist: Double) -> String {

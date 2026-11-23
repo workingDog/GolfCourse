@@ -51,13 +51,24 @@ struct CourseView: View {
                 MapPolygon(coordinates: Utility.coordinates(item.element))
                     .foregroundStyle(.green.opacity(0.15))
             }
-            
+
             // Hole paths
             ForEach(club.courses) { course in
-                ForEach(course.holes) { hole in
-                    if hole.path.count > 1 {
-                        MapPolyline(coordinates: Utility.coordinates(hole.path))
-                            .stroke(.blue, lineWidth: 3)
+                ForEach(course.holes, id: \.number) { hole in
+                    let coordinates = Utility.coordinates(hole.path)
+                    if coordinates.count > 1 {
+                        MapPolyline(coordinates: coordinates).stroke(.blue, lineWidth: 3)
+
+                        Annotation("", coordinate: coordinates[coordinates.count / 2]) {
+                            Text("\(hole.number)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 26, height: 26)
+                                .background(.blue, in: Circle())
+                                .overlay {
+                                    Circle().stroke(.white, lineWidth: 2)
+                                }
+                        }
                     }
                 }
             }

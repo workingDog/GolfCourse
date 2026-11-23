@@ -29,53 +29,64 @@ struct ClubSelectionView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            List(filteredClubs) { club in
-                Button {
-                    selectedClubID = club.id
-                } label: {
-                    Text(club.name ?? "Unknown Club").foregroundStyle(.primary)
-                 //   ClubRow(club: club, provider: provider).foregroundStyle(.primary)
+            ZStack(alignment: .topLeading) {
+                AppBackground().ignoresSafeArea()
+                
+                List(filteredClubs) { club in
+                    Button {
+                        selectedClubID = club.id
+                    } label: {
+                        Text(club.name ?? "Unknown Club")
+                    }
+                    .foregroundStyle(.primary)
+                    .buttonStyle(.bordered)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 10, bottom: 3, trailing: 10))
                 }
-                .buttonStyle(.plain)
-            }
-            .searchable(text: $searchText, prompt: "Search clubs")
-            .navigationDestination(for: GroupDestination.self) { destination in
-                switch destination {
-                case .map:
-                    ClubsMapView(path: $path)
-                        .onDisappear {
-                            showMap = false
-                            searchText = ""
-                        }
-                case .club(let id):
-                    if let club = clubs.first(where: { $0.id == id }) {
-                        CourseView(club: club)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .searchable(text: $searchText, prompt: "Search clubs")
+                .navigationDestination(for: GroupDestination.self) { destination in
+                    switch destination {
+                    case .map:
+                        ClubsMapView(path: $path)
                             .onDisappear {
-                                selectedClubID = nil
+                                showMap = false
                                 searchText = ""
                             }
-                    }
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showMap.toggle()
-                        if showMap {
-                            path.append(.map)
+                    case .club(let id):
+                        if let club = clubs.first(where: { $0.id == id }) {
+                            CourseView(club: club)
+                                .onDisappear {
+                                    selectedClubID = nil
+                                    searchText = ""
+                                }
                         }
-                    } label: {
-                        Image(systemName: "map")
-                            .foregroundStyle(Color.primary)
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showMap.toggle()
+                            if showMap {
+                                path.append(.map)
+                            }
+                        } label: {
+                            Image(systemName: "map")
+                                .foregroundStyle(Color.primary)
+                        }
                     }
                 }
             }
-        }
-        .onChange(of: selectedClubID) {
-            if let id = selectedClubID {
-                path.append(.club(id))
+            .onChange(of: selectedClubID) {
+                if let id = selectedClubID {
+                    path.append(.club(id))
+                }
             }
         }
+        .navigationTitle("Golf club selection")
+        .navigationBarTitleDisplayMode(.inline)
     }
     
 //    func note(_ club: ClubModel) -> String {

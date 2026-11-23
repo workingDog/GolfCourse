@@ -31,10 +31,10 @@ struct CourseView: View {
     
     var mapStyle: MapStyle {
         switch(mapType) {
-            case 0: .standard()
-            case 1: .hybrid()
-            case 2: .imagery(elevation: .realistic)
-            default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
+        case 0: .standard()
+        case 1: .hybrid()
+        case 2: .imagery(elevation: .realistic)
+        default: .standard(elevation: .automatic, pointsOfInterest: .excludingAll)
         }
     }
     
@@ -106,13 +106,14 @@ struct CourseView: View {
                     Text("Satellite").tag(2)
                 }
                 .pickerStyle(.segmented)
+   //             .frame(width: 240)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showPins.toggle()
                 } label: {
                     Image(systemName: showPins ?  "flag.fill" : "flag")
-                        .foregroundStyle(Color.primary)
+                        .foregroundStyle(Color.red)
                 }
             }
         }

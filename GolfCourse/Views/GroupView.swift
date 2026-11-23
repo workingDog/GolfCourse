@@ -46,7 +46,12 @@ struct GroupView: View {
     
     var body: some View {
         NavigationStack(path: $path) {
-            ClubSelectionView()
+            ZStack(alignment: .topLeading) {
+                AppBackground().ignoresSafeArea()
+                
+                ClubSelectionView()
+                
+            }
         }
         .task {
 //            // load all the data into SwiftData once

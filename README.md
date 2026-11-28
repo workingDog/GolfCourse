@@ -6,10 +6,10 @@ An experiment with **OSM Overpass** to display golf courses in Japan on a map.
 
 
 <p float="left">
-  <img src="ScreenShots/s1.png"  width="400"  height="400" />
-  <img src="ScreenShots/s2.png"  width="400"  height="400" /> 
-  <img src="ScreenShots/s3.png"  width="400"  height="400" /> 
-  <img src="ScreenShots/s4.png"  width="400"  height="400" /> 
+  <img src="ScreenShots/s1.png"  width="300"  height="400" />
+  <img src="ScreenShots/s2.png"  width="300"  height="400" /> 
+  <img src="ScreenShots/s3.png"  width="300"  height="400" /> 
+  <img src="ScreenShots/s4.png"  width="300"  height="400" /> 
 </p>
 
 

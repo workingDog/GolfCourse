@@ -157,7 +157,7 @@ struct CourseView: View {
                 let labelCoordinate = Utility.pointAlongLine(
                     from: userLocation.coordinate,
                     to: thePin.coordinate,
-                    fraction: 0.2
+                    fraction: 0.9
                 )
                 
                 MapPolyline(coordinates: [userLocation.coordinate, thePin.coordinate])

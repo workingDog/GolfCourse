@@ -62,7 +62,7 @@ struct Utility {
             case "fairway": .mint
             case "bunker": .yellow
             case "water_hazard": .blue
-            case "tee": .orange
+            case "tee": .purple
             default: .gray
         }
     }
